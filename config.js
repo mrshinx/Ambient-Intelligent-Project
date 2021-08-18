@@ -8,7 +8,10 @@
 var experiment = 
 [
 ['experiment_1024x768px.jpg', 5],
-['frog_1024x768px.jpg', 5]
+['frog_1024x768px.jpg', 5],
+['room.jpg', 5],
+['bulb_off.png', 5],
+['bulb_on.png', 5]
 ];
 
 
