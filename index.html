@@ -209,6 +209,11 @@ var validation = function()
 		state = 1;		
 	}
 	
+	if(button(cx, e1, 0.5*w - 150, 0.5*h+120, 100, 40, "Home appliance control"))
+	{
+		state = 5;
+	}
+	
 }
 
 var run_experiment = function()
@@ -348,10 +353,89 @@ var update = function()
 	if(state==2){ validation(); }	
 	if(state==3){ run_experiment(); }
 	if(state==4){ show_results(); }
+	if(state==5){ Home_appliance_control(); }	
 	
 	draw_settings();
 
 }
+
+var button_menu = 0;		// decides what buttons to be displayed to the user (0 displays list of available devices, 1 displays on/off options for device bulb)
+var device_state = { "Bulb":"Off"};		// state that the device is in
+var Home_appliance_control = function()
+{
+	var w = canvas.width;
+	var h = canvas.height;
+	var button_size = 100;
+	
+	cx.drawImage(experiment_images[2], 0, 0, w, h);			// draw the room background
+
+	var bulb = {"Off":3, "On":4};		// Provides the index of the Off and On bulb images in the experiment array in config.js
+	
+	let devices = [ [bulb[device_state["Bulb"]], w/10, 0, w/5] ];	// [ [ index of device image in config.js, x, y, image size ] ]
+	for (var i = 0; i < devices.length; i++)
+	{
+		cx.drawImage(experiment_images[devices[i][0]], devices[i][1], devices[i][2], devices[i][3], devices[i][3]);	// draw all devices in devices array
+	}
+		
+	let device_buttons = [ [w-button_size-10, h/10, 100, "Bulb"] ];		// [[x, y, button size, button text]], buttons showed in button_menu = 0
+	let on_off_buttons = [ [w/2, h/8, 100, "On"], [w/2, h/2, 100, "Off"] ];		// buttons showed in button_menu = 1
+	
+	if(button_menu == 0)	// button menu of available devices
+	{
+		cx.fillStyle = "black";
+		cx.fillText("Choose appliance:", w-100, 20);
+		for (var i = 0; i < device_buttons.length; i++)
+		{
+			draw_button(device_buttons[i][0], device_buttons[i][1], device_buttons[i][2], device_buttons[i][3]);	// draws buttons using draw button function defined below
+		}
+		
+		if(get_gaze(device_buttons) == "Bulb")	// changes menu if user looks at Bulb button
+		{
+			button_menu = 1;
+		}
+	}
+	
+	else if(button_menu == 1)	// button menu for selected device
+	{
+		for (var i = 0; i < on_off_buttons.length; i++)
+		{
+			draw_button(on_off_buttons[i][0], on_off_buttons[i][1], on_off_buttons[i][2], on_off_buttons[i][3]);
+		}
+		
+		if(get_gaze(on_off_buttons) == "On" || get_gaze(on_off_buttons) == "Off")
+		{
+			button_menu = 0;
+			device_state["Bulb"] = get_gaze(on_off_buttons);	// changes device state based on button user looks at
+		}
+	}
+	
+	// draw gazecursor	
+	draw_gaze_cursor();
+}
+
+function draw_button(x, y, size, text)	// draws buttons
+{
+	cx.rect(x, y, size, size);
+	cx.stroke();
+	
+	cx.font = '20px serif';
+	cx.fillStyle = "black";
+	cx.fillText(text, x + size/2, y + size/2);
+}
+
+function get_gaze(a)	// checks if co-ordinates of gaze cursor are within a button's dimensions and returns the button's text
+{
+	var w = canvas.width;
+	var h = canvas.height;
+	for(var i = 0; i < a.length; i++)
+	{
+		if((gaze_x > a[i][0] && gaze_x < a[i][0]+a[i][2]) && (gaze_y > a[i][1] && gaze_y < a[i][1]+a[i][2]))
+		{
+			return a[i][3];
+		}
+	}
+}
+
 
 // first load images
 var setup_step1 = function()
