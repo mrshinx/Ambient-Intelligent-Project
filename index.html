@@ -401,11 +401,13 @@ var Home_appliance_control = function()
 		    draw_button(on_off_buttons[i][0], on_off_buttons[i][1], on_off_buttons[i][2], on_off_buttons[i][3]);
 		}
 		
-		if(get_gaze(on_off_buttons) == "On" || get_gaze(on_off_buttons) == "Off")
+		var gaze_location = get_gaze(on_off_buttons);	// returns what user is looking at, returns null if user doesnt look at any button for more than 0.25s
+		if(gaze_location != null)
 		{
 			button_menu = 0;
-			device_state["Bulb"] = get_gaze(on_off_buttons);	// changes device state based on button user looks at
+			device_state["Bulb"] = gaze_location;	// changes device state based on button user looks at
 		}
+		
 	}
 	
 	// draw gazecursor	
@@ -422,28 +424,28 @@ function draw_button(x, y, size, text)	// draws buttons
 	cx.fillText(text, x + size/2, y + size/2);
 }
 
-function get_gaze(a)	// checks if co-ordinates of gaze cursor are within a button's dimensions and returns the button's text
+function get_gaze(a)	// checks if co-ordinates of gaze cursor are within a button's dimensions and returns the button's text; a is an array of buttons in the current menu
 {
 	var w = canvas.width;
 	var h = canvas.height;
+	
 	for(var i = 0; i < a.length; i++)
 	{
 		if((gaze_x > a[i][0] && gaze_x < a[i][0]+a[i][2]) && (gaze_y > a[i][1] && gaze_y < a[i][1]+a[i][2])) // [x, y, button size, button text]
 		{
-			if(tracking == false) { date1 = new Date(); console.log("date1: " +date1); tracking = true; } //detect when user start to gaze at button
+			if(tracking == false) { date1 = new Date(); tracking = true; } //detect when user start to gaze at button "date1: " +date1+
 			date2 = new Date(); // repeatedly create new time frame as long as user keeps gazing at it
-			console.log("date2: " +date2);
+			//console.log("date2: " +date2);
 			time = date2 - date1; // Calculate duration the user has gazed at the button
-			console.log("diff: " +time);
-			if (time >= 250) {return a[i][3];} // If gaze long enough (0.25s) return result
-			else {return "abc";} // If not then return nothing
-		}
-		else
-		{
-		    tracking = false; // reset the switch when user gaze away
-		    time = 0; // reset time when user gaze away
+			console.log(a[i][3] + time);
+			//console.log("diff: " +time);
+			if (time >= 250) {tracking = false; return a[i][3];} // If gaze long enough (0.25s) return result
+			
+			else {return null;}	// If not then return nothing
 		}
 	}
+	
+	tracking = false;
 }
 
 
