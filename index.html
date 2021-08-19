@@ -361,7 +361,7 @@ var Home_appliance_control = function()
 
 	    // MONISH PART:
 	    case 1:	// menu for bulb control (from Monish)
-	        let on_off_buttons = [ [w/2, h/8, 100, "On"], [w/2, h/8 +125, 100, "Off"] ];		// buttons showed in button_menu = 1
+	        let on_off_buttons = [ [w/2, h/8, 100, "On"], [w/2, h/8 +125, 100, "Off"] ];	// format: [x,y,size,text]
 		    for (var i = 0; i < on_off_buttons.length; i++)
 		    {
 		    	button(cx, e1, on_off_buttons[i][0], on_off_buttons[i][1], on_off_buttons[i][2], on_off_buttons[i][2], on_off_buttons[i][3]);
