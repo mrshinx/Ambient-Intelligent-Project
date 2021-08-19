@@ -34,29 +34,29 @@ var show_gaze_cursor = false;
 
 
 // immediate gui events
-var e1 = 
+var e1 =
 {
 	mouse_down: false, // mousbutton down?
 	mouse_klicked: false, // button pressed? (set to false after use)
 	mx: 0, // Position des Mauszeigers
-	my: 0, 
+	my: 0,
 	mx_old: 0,
 	my_old: 0 // previous position of the mousepointer
 };
 
-var e2 = 
+var e2 =
 {
 	mouse_down: false, // mousbutton down?
 	mouse_klicked: false, // button pressed? (set to false after use)
 	mx: 0, // Position des Mauszeigers
-	my: 0, 
+	my: 0,
 	mx_old: 0,
 	my_old: 0 // previous position of the mousepointer
 };
 
 
 // gazex,y relative to the canvas
-var gaze_cursor_radius = 80; 
+var gaze_cursor_radius = 80;
 var gaze_x=0;
 var gaze_y=0;
 var gaze_data = [];
@@ -67,27 +67,22 @@ var canvas_snapshot;
 var experiment_images_loaded = 0;
 var experiment_start_time = -1;
 var experiment_time = 0;
-var start_time = 0;
-var time = -1;
 var experiment_images = [];
 var experiment_current_image=0;
 var experiment_image_switch_time = 0;
-var tracking = false;
-var date1 = new Date();
-var date2 = new Date();
 
 var draw_gaze_cursor = function()
 {
-	// draw gazecursor	
+	// draw gazecursor
 	if(show_gaze_cursor)
-	{	
-			
+	{
+
 		cx.strokeStyle = "rgb(200,200,200)";
 		circle(cx, gaze_x, gaze_y, gaze_cursor_radius, false, true);
 		cx.strokeStyle = "rgb(50,50,50)";
 		circle(cx, gaze_x, gaze_y, gaze_cursor_radius+1, false, true);
-		
-		
+
+
 		/*  createRadialGradient parameters:
 		x0 	The x-coordinate of the starting circle of the gradient
 		y0 	The y-coordinate of the starting circle of the gradient
@@ -95,7 +90,7 @@ var draw_gaze_cursor = function()
 		x1 	The x-coordinate of the ending circle of the gradient
 		y1 	The y-coordinate of the ending circle of the gradient
 		r1 	The radius of the ending circle
-		*/		
+		*/
 		var g = cx.createRadialGradient(gaze_x, gaze_y, 5, gaze_x, gaze_y, gaze_cursor_radius);
 		g.addColorStop(0, 'rgba(255,255,255,0.8)');
 		g.addColorStop(0.5, 'rgba(255,255,255,0.5)');
@@ -103,9 +98,9 @@ var draw_gaze_cursor = function()
 		cx.fillStyle = g;
 		cx.fillRect(gaze_x-gaze_cursor_radius, gaze_y-gaze_cursor_radius, 2*gaze_cursor_radius, 2*gaze_cursor_radius);
 	}
-	
 
-	
+
+
 
 }
 
@@ -147,7 +142,7 @@ var calibration = function()
 	cx.fillText(calibration_substep.toString() + "/5", x, y+radius+10);
 
 	if(e1.mouse_klicked)
-	{ 
+	{
 		e1.mouse_klicked = false;
 		if(inside)
 		{
@@ -174,21 +169,21 @@ var validation = function()
 	var w = canvas.width;
 	var h = canvas.height;
 	var r = 20;
-	
+
 	cx.fillStyle = "black";
 	cx.textAlign = "center";
 	cx.fillText("Validation: look at the provided validation dots but do not klick them. Check, if the gaze cursor is within reasonable proximity.", 0.5*w, 0.5*h-50);
-	
+
 	cx.fillStyle = "rgb(0,200,200)";
 	for(var i = 0; i < validation_points.length; i++)
 	{
 		var p = validation_points[i];
-		circle(cx, w*p[0], h*p[1], r, true, true);		
+		circle(cx, w*p[0], h*p[1], r, true, true);
 	}
-	
+
 	// draw gaze cursor
 	draw_gaze_cursor();
-	
+
 	/*
 	var prediction = webgazer.getCurrentPrediction();
 	if (prediction)
@@ -196,79 +191,22 @@ var validation = function()
 	    circle(cx, prediction.x, prediction.y, 40, false, true);
 	}
 	//*/
-	
-	
+
+
 	if(button(cx, e1, 0.5*w - 150, 0.5*h+60, 100, 40, "Start controlling devices"))
 	{
 		state = 3;
 	}
-	
+
 	if(button(cx, e1, 0.5*w - 25, 0.5*h+60, 100, 40, "calibrate again"))
 	{
 		// Restart the calibration process by clearing the local storage and reseting the calibration point
 		webgazer.clearData();
 		calibration_step = 0;
-		calibration_substep = 0;			
-		state = 1;		
+		calibration_substep = 0;
+		state = 1;
 	}
 
-}
-
-var run_experiment = function()
-{
-	var w = canvas.width;
-	var h = canvas.height;
-	
-	// display the image for the experiment
-	var img = experiment_images[experiment_current_image];
-	var img_w = img.width;
-	var img_h = img.height;
-	cx.drawImage(img, 0, 0);		
-	
-	cx.fillStyle = "gray";
-	cx.textAlign = "left";
-	cx.fillText("recording:"+Math.floor(experiment_time/1000).toString(), 15, 15);
-	
-	if(experiment_time >= 1000 * experiment_image_switch_time)
-	{
-		experiment_current_image++;
-
-		if(experiment_current_image >= experiment.length)
-		{
-			// canvas screenshot doesnt work for security  reasons - how to fix ? 
-			// canvas.toBlob(function(blob){ canvas_snapshot = blob;});
-			state = 4;		
-			return;
-		}		
-
-		experiment_image_switch_time += experiment[experiment_current_image][1];
-	}
-	
-	// draw gazecursor	
-	draw_gaze_cursor();
-}
-
-var show_results = function()
-{
-	var w = canvas.width;
-	var h = canvas.height;
-	
-	cx.fillStyle = "black";
-	cx.textAlign = "center";
-	cx.fillText("Experiment finished. Save results by klicking on the button.", 0.5 * w, 0.5 * h - 10);
-
-	if(button(cx, e1, 0.5*w - 50, 0.5*h+40, 100, 40, "save gaze data"))
-	{
-		var blob = new Blob(gaze_data, { type: "text/plain;charset=utf-8" });
-		saveAs(blob, "gaze_data.txt");
-	}
-
-	/*
-	if(button(cx, e1, 0.5*w + 10, 0.5*h+40, 100, 40, "save canvas screenshot"))
-	{
-		saveAs(canvas_snapshot,"canvas.png"); 
-	}
-	*/
 }
 
 var draw_settings = function()
@@ -280,19 +218,19 @@ var draw_settings = function()
 	s_cx.fillStyle = "rgb(240, 240, 255)";
 	s_cx.fillRect(0,0,w,h);
 	s_cx.strokeRect(0,0,w,h);
-	
+
 	var x = 15;
 	var y = 15;
-	show_gaze_cursor = toggle_button(s_cx, e2, show_gaze_cursor, x, y, 200, 40, "toggle gaze cursor"); 
+	show_gaze_cursor = toggle_button(s_cx, e2, show_gaze_cursor, x, y, 200, 40, "toggle gaze cursor");
 	y+=40+15;
-	
+
 	window.applyKalmanFilter = toggle_button(s_cx, e2, window.applyKalmanFilter, x, y, 200, 40, "toggle kalman filter");
 	y+=40+15;
 
 	gaze_cursor_radius = slider(s_cx, e2, x, y, 200, 40, gaze_cursor_radius, 10, 150, "gaze cursor radius = " + Math.round(gaze_cursor_radius).toString());
 	y+=40+15;
 
-	// if the event was not used to this point, drop it. 
+	// if the event was not used to this point, drop it.
 	e2.mouse_klicked = false;
 
 }
@@ -337,13 +275,13 @@ var update = function()
 			if(button(cx, e1, 0.5*w - 50, 0.5*h-20, 100, 40, "start calibration"))
 			{
 				state = 1;
-			}	
+			}
 		}
 		else
 		{
 			cx.fillStyle = "black";
 			cx.textAlign = "center";
-			cx.fillText("Setup: please wait until the video-preview is ready. Then place your face inside the box.", 0.5*w, 0.5*h-50);			
+			cx.fillText("Setup: please wait until the video-preview is ready. Then place your face inside the box.", 0.5*w, 0.5*h-50);
 		}
 	}
 
@@ -356,95 +294,124 @@ var update = function()
 
 }
 
-var button_menu = 0;		// decides what buttons to be displayed to the user (0 displays list of available devices, 1 displays on/off options for device bulb)
-var device_state = { "Bulb":"Off"};		// state that the device is in
+var menu = 0;		// decides what menu to be displayed to the user (0 displays list of available devices, 1 displays menu for bulb,...)
+var date1 = new Date();
+var date2 = new Date();
+var tracking = false;
+var time = 0;
+
+// Define the state variable of your device as well as its first state:
+var device_state = {
+    "Bulb":"Off",
+    "Fan":"Fan_Off"
+    };
+
 var Home_appliance_control = function()
 {
 	var w = canvas.width;
 	var h = canvas.height;
 	var button_size = 100;
-	
-	cx.drawImage(experiment_images[2], 0, 0, w, h);			// draw the room background
-    cx.fillText("recording:"+Math.floor(time/1000).toString(), 15, 15);
 
-	var bulb = {"Off":3, "On":4};		// Provides the index of the Off and On bulb images in the experiment array in config.js
-	
-	let devices = [ [bulb[device_state["Bulb"]], w/10, 0, w/5] ];	// [ [ index of device image in config.js, x, y, image size ] ]
+	cx.drawImage(experiment_images[2], 0, 0, w, h);		// draw the room background
+
+    // Define the state as well as the corresponding image index for it (which is in config.js)
+	var bulb = {"Off":3, "On":4}; // Bulb of Monish
+	var fan = {"Fan_Off":5, "Fan_Weak":6, "Fan_Medium":7, "Fan_Strong":8}; // Fan of Quang
+
+	// Define your device here: [ index of device image in config.js, x, y, image size ]
+	let devices = [
+	[bulb[device_state["Bulb"]], w/10, 0, w/5],
+	[fan[device_state["Fan"]], w/10, w/5, w/5]
+	];
+
+    // Define the button to start controlling your device: [[x, y, button size, button text]]
+    let device_buttons = [
+    [w-button_size-10, h/12, 100, "Bulb"],
+    [w-button_size-10, h/10+150, 100, "Fan"]
+    ];
+
+    // Draw all available appliances
 	for (var i = 0; i < devices.length; i++)
 	{
-		cx.drawImage(experiment_images[devices[i][0]], devices[i][1], devices[i][2], devices[i][3], devices[i][3]);	// draw all devices in devices array
+        cx.drawImage(experiment_images[devices[i][0]], devices[i][1], devices[i][2], devices[i][3], devices[i][3]);	// draw all devices in devices array
 	}
-		
-	let device_buttons = [ [w-button_size-10, h/10, 100, "Bulb"] ];		// [[x, y, button size, button text]], buttons showed in button_menu = 0
-	let on_off_buttons = [ [w/2, h/8, 100, "On"], [w/2, h/2, 100, "Off"] ];		// buttons showed in button_menu = 1
-	
-	if(button_menu == 0)	// button menu of available devices
+
+	switch(menu)
 	{
-		cx.fillStyle = "black";
-		cx.fillText("Choose appliance:", w-100, 20);
-		for (var i = 0; i < device_buttons.length; i++)
-		{
-			button(cx, e1, device_buttons[i][0], device_buttons[i][1], device_buttons[i][2], device_buttons[i][2], device_buttons[i][3])
-		}
-		
-		if(get_gaze(device_buttons) == "Bulb")	// changes menu if user looks at Bulb button
-		{
-			button_menu = 1;
-		}
+		case 0: // Display all available devices
+		    cx.font = "20px Georgia";
+		    cx.fillStyle = "black";
+		    cx.fillText("Choose appliance:", w-100, 20);
+
+		    for (var i = 0; i < device_buttons.length; i++)
+		    {
+		    	button(cx, e1, device_buttons[i][0], device_buttons[i][1], device_buttons[i][2], device_buttons[i][2], device_buttons[i][3])
+		    }
+
+		    switch(get_gaze(device_buttons))
+		    {
+		    	case "Bulb":
+		    	    menu = 1;
+		    	    break;
+		    	case "Fan":
+		    	    menu = 2;
+		    	    break;
+		    }
+		break;
+
+	    // MONISH PART:
+	    case 1:	// menu for bulb control (from Monish)
+	        let on_off_buttons = [ [w/2, h/8, 100, "On"], [w/2, h/8 +125, 100, "Off"] ];		// buttons showed in button_menu = 1
+		    for (var i = 0; i < on_off_buttons.length; i++)
+		    {
+		    	button(cx, e1, on_off_buttons[i][0], on_off_buttons[i][1], on_off_buttons[i][2], on_off_buttons[i][2], on_off_buttons[i][3]);
+		    }
+
+		    var gaze_location = get_gaze(on_off_buttons);	// returns what user is looking at, returns null if user doesnt look at any button for more than 0.25s
+		    if(gaze_location != null)
+		    {
+		    	device_state["Bulb"] = gaze_location;	// changes device state based on button user looks at
+		    	menu = 0;
+		    }
+		    break;
+		// QUANG PART:
+		case 2: //menu for fan control
+		    let buttons = [[w/2,h/8,100,"Fan_Off"], [w/2,h/8+125,100,"Fan_Weak"], [w/2,h/8+250,100,"Fan_Medium"], [w/2,h/8+375,100,"Fan_Strong"]];
+		    for (var i = 0; i < buttons.length; i++)
+		    {
+		    	button(cx, e1, buttons[i][0], buttons[i][1], buttons[i][2], buttons[i][2], buttons[i][3]);
+		    }
+		    var gaze_location = get_gaze(buttons);	// returns what user is looking at, returns null if user doesnt look at any button for more than 0.25s
+		    if(gaze_location != null)
+		    {
+		        device_state["Fan"] = gaze_location;	// changes device state based on button user looks at
+		    	menu = 0;
+		    }
+            break;
 	}
-	
-	else if(button_menu == 1)	// button menu for selected device
-	{
-		for (var i = 0; i < on_off_buttons.length; i++)
-		{
-			//button(cx, e1, on_off_buttons[i][0], on_off_buttons[i][1], on_off_buttons[i][2], on_off_buttons[i][2], on_off_buttons[i][3]);
-		    draw_button(on_off_buttons[i][0], on_off_buttons[i][1], on_off_buttons[i][2], on_off_buttons[i][3]);
-		}
-		
-		var gaze_location = get_gaze(on_off_buttons);	// returns what user is looking at, returns null if user doesnt look at any button for more than 0.25s
-		if(gaze_location != null)
-		{
-			button_menu = 0;
-			device_state["Bulb"] = gaze_location;	// changes device state based on button user looks at
-		}
-		
-	}
-	
-	// draw gazecursor	
+
+	// draw gazecursor
 	draw_gaze_cursor();
-}
-
-function draw_button(x, y, size, text)	// draws buttons
-{
-	cx.rect(x, y, size, size);
-	cx.stroke();
-
-	cx.font = '20px serif';
-	cx.fillStyle = "black";
-	cx.fillText(text, x + size/2, y + size/2);
 }
 
 function get_gaze(a)	// checks if co-ordinates of gaze cursor are within a button's dimensions and returns the button's text; a is an array of buttons in the current menu
 {
 	var w = canvas.width;
 	var h = canvas.height;
-	
+
 	for(var i = 0; i < a.length; i++)
 	{
 		if((gaze_x > a[i][0] && gaze_x < a[i][0]+a[i][2]) && (gaze_y > a[i][1] && gaze_y < a[i][1]+a[i][2])) // [x, y, button size, button text]
 		{
 			if(tracking == false) { date1 = new Date(); tracking = true; } //detect when user start to gaze at button "date1: " +date1+
 			date2 = new Date(); // repeatedly create new time frame as long as user keeps gazing at it
-			//console.log("date2: " +date2);
 			time = date2 - date1; // Calculate duration the user has gazed at the button
-			console.log(a[i][3] + time);
-			//console.log("diff: " +time);
+
 			if (time >= 250) {tracking = false; return a[i][3];} // If gaze long enough (0.25s) return result
-			
 			else {return null;}	// If not then return nothing
 		}
 	}
-	
+
 	tracking = false;
 }
 
@@ -455,12 +422,12 @@ var setup_step1 = function()
 	for(var i = 0; i < experiment.length; i++)
 	{
 		experiment_images.push(new Image());
-		
+
 		// https://stackoverflow.com/questions/2342132/waiting-for-image-to-load-in-javascript
-		// Note that it's important to do it in the order above: First attach the handler, then set the src. If you do it the other way around, and the image is in cache, you may miss the event. 
+		// Note that it's important to do it in the order above: First attach the handler, then set the src. If you do it the other way around, and the image is in cache, you may miss the event.
 		experiment_images[i].onload = function () { experiment_images_loaded += 1; };
 		experiment_images[i].src = experiment[i][0];
-	}	
+	}
 
 	// setup canvas update
 	setInterval(update, 25);
@@ -477,11 +444,11 @@ var setup_step2 = function()
 
 	// adjust the canvas size and position
 	var left_border = 322; // make some space for the webgazer preview window
-	
+
 	// set the canvas size based on the browser window size:
 	//canvas.width = window.innerWidth-left_border;
 	//canvas.height = window.innerHeight;
-	
+
 	// or set the canvas size based on the experiment image size:
 	canvas.width = experiment_images[0].width;
 	canvas.height = experiment_images[0].height;
@@ -490,25 +457,25 @@ var setup_step2 = function()
 	canvas.style.position = 'fixed';
 	if (!canvas.getContext) { return; }
 	cx = canvas.getContext("2d");
-	
+
 	settings_canvas = document.getElementById("settings_canvas");
 	settings_canvas.width = 320;
 	settings_canvas.height = 400;
 	settings_canvas.style.top = "242px";
 	settings_canvas.style.left = "0px";
-	settings_canvas.style.position = 'fixed';	
+	settings_canvas.style.position = 'fixed';
 	if (!settings_canvas.getContext) { return; }
 	s_cx = settings_canvas.getContext("2d");
-         
-	
+
+
 	// setup webgazer
 
-	//webgazer.setRegression('weightedRidge');	
+	//webgazer.setRegression('weightedRidge');
     webgazer.setRegression('ridge'). // currently must set regression and tracker
 	setTracker('TFFacemesh').
-	showPredictionPoints(false). // shows a square every 100 milliseconds where current prediction is 
+	showPredictionPoints(false). // shows a square every 100 milliseconds where current prediction is
 	begin();
-	
+
 	window.applyKalmanFilter = true;
 
 
@@ -516,7 +483,7 @@ var setup_step2 = function()
 	webgazer.setGazeListener(function(data, clock)
 	{
 		if (data == null) { return; }
-		
+
 		//console.log(data);
 		//console.log(clock);
 		gaze_x = data.x; //these x coordinates are relative to the viewport
@@ -540,7 +507,7 @@ var setup_step2 = function()
 		e1.mx_old = e1.mx;
 		e1.my_old = e1.my;
 	}
-	
+
 	canvas.onmouseup = () =>
 	{
 		e1.mouse_down = false;
@@ -560,7 +527,7 @@ var setup_step2 = function()
 		e2.mouse_down = true;
 		e2.mouse_klicked = false;
 	}
-	
+
 	settings_canvas.onmouseup = () =>
 	{
 		e2.mouse_down = false;
@@ -594,7 +561,7 @@ window.onbeforeunload = function()
 </script>
 
 </head>
-	
+
 <body>
 
 <canvas id="plotting_canvas" width="1024" height="768" style="cursor:crosshair;"></canvas>
