@@ -1,4 +1,5 @@
 
+
 // edit your experiment here: 
 // define the sequence of images and their duration
 // 1. column = image file
@@ -15,7 +16,11 @@ var experiment =
 ['fan_off.jpg', 5], //5
 ['fan_weak.jpg', 5], //6
 ['fan_medium.jpg', 5], //7
-['fan_strong.jpg', 5] //8
+['fan_strong.jpg', 5], //8
+['tv_off.jpg', 5], //9
+['tv_movies.jpg', 5], //10
+['tv_news.png', 5], //11
+['tv_sport.png', 5] //12
 ];
 
 
@@ -26,4 +31,5 @@ var experiment =
 //const FACEMESH_GRAPHMODEL_URL = 'https://tfhub.dev/mediapipe/tfjs-model/facemesh/1/default/1';
 const FACEMESH_GRAPHMODEL_URL = 'https://mediablix.de/facemesh_1';
 const BLAZEFACE_MODEL_URL="https://mediablix.de/blazeface_1";
+
 
