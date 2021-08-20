@@ -303,7 +303,8 @@ var time = 0;
 // Define the state variable of your device as well as its first state:
 var device_state = {
     "Bulb":"Off",
-    "Fan":"Fan_Off"
+    "Fan":"Fan_Off",
+	"TV":"Off"
     };
 
 var Home_appliance_control = function()
@@ -317,17 +318,20 @@ var Home_appliance_control = function()
     // Define the state as well as the corresponding image index for it (which is in config.js)
 	var bulb = {"Off":3, "On":4}; // Bulb of Monish
 	var fan = {"Fan_Off":5, "Fan_Weak":6, "Fan_Medium":7, "Fan_Strong":8}; // Fan of Quang
+	var tv = {"Off":9, "Movies":10, "News":11, "Sport":12}; //TV of Shashank
 
 	// Define your device here: [ index of device image in config.js, x, y, image size ]
 	let devices = [
 	[bulb[device_state["Bulb"]], w/10, 0, w/5],
-	[fan[device_state["Fan"]], w/10, w/5, w/5]
+	[fan[device_state["Fan"]], w/10, w/5, w/5],
+	[tv[device_state["TV"]], w/10, w/2 , w/5]
 	];
 
     // Define the button to start controlling your device: [[x, y, button size, button text]]
     let device_buttons = [
     [w-button_size-10, h/12, 100, "Bulb"],
-    [w-button_size-10, h/10+150, 100, "Fan"]
+    [w-button_size-10, h/10+150, 100, "Fan"],
+	[w-button_size-10, h/10+200, 100, "TV"]
     ];
 
     // Draw all available appliances
@@ -355,7 +359,9 @@ var Home_appliance_control = function()
 		    	    break;
 		    	case "Fan":
 		    	    menu = 2;
-		    	    break;
+		    	case "TV":
+		    	    menu = 3;
+					break;
 		    }
 		break;
 
@@ -385,6 +391,20 @@ var Home_appliance_control = function()
 		    if(gaze_location != null)
 		    {
 		        device_state["Fan"] = gaze_location;	// changes device state based on button user looks at
+		    	menu = 0;
+		    }
+            break;
+		// SHASHANK PART:
+		case 3: //menu for tv control
+		    let buttons = [[w/2,h/8,100,"Off"], [w/2,h/8+125,100,"Movies"], [w/2,h/8+250,100,"News"], [w/2,h/8+375,100,"Sport"]];
+		    for (var i = 0; i < buttons.length; i++)
+		    {
+		    	button(cx, e1, buttons[i][0], buttons[i][1], buttons[i][2], buttons[i][2], buttons[i][3]);
+		    }
+		    var gaze_location = get_gaze(buttons);	// returns what user is looking at, returns null if user doesnt look at any button for more than 0.25s
+		    if(gaze_location != null)
+		    {
+		        device_state["TV"] = gaze_location;	// changes device state based on button user looks at
 		    	menu = 0;
 		    }
             break;
