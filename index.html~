@@ -1,0 +1,510 @@
+<html>
+<head>
+
+
+<META HTTP-EQUIV="CONTENT-TYPE" CONTENT="text/html; charset=utf-8">
+<TITLE>WebGazer</TITLE>
+
+<script src="config.js" type="text/javascript"></script>
+
+<script src="js/helpers.js" type="text/javascript"></script>
+<script src="js/webgazer.js" type="text/javascript"></script>
+<script src="js/FileSaver.js" type="text/javascript"></script>
+<script>
+
+
+// global program execution state (todo: gibt es enums wie in c/c++ ?)
+// 0 == introduction screen
+// 1 == calibration
+// 2 == validation
+// 3 == experiment
+// 4 == show results
+var state = 0;
+
+// some global variables (bad coding style is just right  thing for a quick prototype in a strange language)
+var dt = 0.1; // delta time for animations
+var canvas; // the canvas we can draw to
+var cx;     // the canvas context
+
+// settings canvas and flags to toggle
+var settings_canvas; // the canvas we can draw to
+var s_cx;     // the canvas context
+//var apply_kalman_filter=true;
+var show_gaze_cursor = false;
+
+
+// immediate gui events
+var e1 = 
+{
+	mouse_down: false, // mousbutton down?
+	mouse_klicked: false, // button pressed? (set to false after use)
+	mx: 0, // Position des Mauszeigers
+	my: 0, 
+	mx_old: 0,
+	my_old: 0 // previous position of the mousepointer
+};
+
+var e2 = 
+{
+	mouse_down: false, // mousbutton down?
+	mouse_klicked: false, // button pressed? (set to false after use)
+	mx: 0, // Position des Mauszeigers
+	my: 0, 
+	mx_old: 0,
+	my_old: 0 // previous position of the mousepointer
+};
+
+
+// gazex,y relative to the canvas
+var gaze_cursor_radius = 80; 
+var gaze_x=0;
+var gaze_y=0;
+var gaze_data = [];
+var gaze_data_available = false;
+var canvas_snapshot;
+
+
+var experiment_images_loaded = 0;
+var experiment_start_time = -1;
+var experiment_time = -1;
+var experiment_images = [];
+var experiment_current_image=0;
+var experiment_image_switch_time = 0;
+
+
+
+var draw_gaze_cursor = function()
+{
+	// draw gazecursor	
+	if(show_gaze_cursor)
+	{	
+			
+		cx.strokeStyle = "rgb(200,200,200)";
+		circle(cx, gaze_x, gaze_y, gaze_cursor_radius, false, true);
+		cx.strokeStyle = "rgb(50,50,50)";
+		circle(cx, gaze_x, gaze_y, gaze_cursor_radius+1, false, true);
+		
+		
+		/*  createRadialGradient parameters:
+		x0 	The x-coordinate of the starting circle of the gradient
+		y0 	The y-coordinate of the starting circle of the gradient
+		r0 	The radius of the starting circle
+		x1 	The x-coordinate of the ending circle of the gradient
+		y1 	The y-coordinate of the ending circle of the gradient
+		r1 	The radius of the ending circle
+		*/		
+		var g = cx.createRadialGradient(gaze_x, gaze_y, 5, gaze_x, gaze_y, gaze_cursor_radius);
+		g.addColorStop(0, 'rgba(255,255,255,0.8)');
+		g.addColorStop(0.5, 'rgba(255,255,255,0.5)');
+		g.addColorStop(1, 'rgba(255,255,255,0)');
+		cx.fillStyle = g;
+		cx.fillRect(gaze_x-gaze_cursor_radius, gaze_y-gaze_cursor_radius, 2*gaze_cursor_radius, 2*gaze_cursor_radius);
+	}
+	
+
+	
+
+}
+
+var calibration_points = [[0.05, 0.05],[0.95, 0.05],[0.95, 0.95],[0.05, 0.95],[0.5, 0.5]];//,[0.5, 0.05],[0.95, 0.5],[0.5, 0.95],[0.05, 0.5]];
+var calibration_step = 0;
+var calibration_substep = 0;
+var calibration = function()
+{
+	var w = canvas.width;
+	var h = canvas.height;
+
+	var radius = 20; // radius of calibration points
+
+
+	cx.fillStyle = "black";
+	cx.textAlign = "center";
+	cx.fillText("Calibration: please look exactly into the center of the calibration point and then klick 5x for each point.", 0.5 * w, 0.5 * h - 1.5*radius-20);
+	cx.fillText("Calibration step " + calibration_step.toString() + "/"+calibration_points.length.toString(), 0.5 * w, 0.5 * h - 1.5*radius);
+
+
+	// draw a calibration point and check if the mouse is inside
+	pos = calibration_points[calibration_step];
+	var inside = false;
+	if( Math.abs(e1.mx-w*pos[0])<=radius && Math.abs(e1.my-h*pos[1])<=radius)
+	{
+		cx.fillStyle = "rgb(200,0,0)";
+		inside = true;
+	}
+	else
+	{
+		cx.fillStyle = "rgb(20,200,20)";
+	}
+
+	var x = w*pos[0];
+	var y = h*pos[1];
+	circle(cx, x, y, radius, true, true);
+	cx.fillStyle = "rgb(0,0,0)";
+	circle(cx, x, y, 3, true, true);
+	cx.fillText(calibration_substep.toString() + "/5", x, y+radius+10);
+
+	if(e1.mouse_klicked)
+	{ 
+		e1.mouse_klicked = false;
+		if(inside)
+		{
+			webgazer.recordScreenPosition(e1.mx, e1.my, 'click'); // eventType[0] === 'click'
+			calibration_substep++;
+			if(calibration_substep>=3)
+			{
+				calibration_substep = 0;
+				calibration_step++;
+				if(calibration_step >= calibration_points.length)
+				{
+					state = 2;
+				}
+			}
+		}
+	}
+
+	draw_gaze_cursor();
+}
+
+var validation_points = [[0.2, 0.2],[0.8, 0.2],[0.8, 0.8],[0.2, 0.8]];
+var validation = function()
+{
+	var w = canvas.width;
+	var h = canvas.height;
+	var r = 20;
+	
+	cx.fillStyle = "black";
+	cx.textAlign = "center";
+	cx.fillText("Validation: look at the provided validation dots but do not klick them. Check, if the gaze cursor is within reasonable proximity.", 0.5*w, 0.5*h-50);
+	
+	cx.fillStyle = "rgb(0,200,200)";
+	for(var i = 0; i < validation_points.length; i++)
+	{
+		var p = validation_points[i];
+		circle(cx, w*p[0], h*p[1], r, true, true);		
+	}
+	
+	// draw gaze cursor
+	draw_gaze_cursor();
+	
+	/*
+	var prediction = webgazer.getCurrentPrediction();
+	if (prediction)
+	{
+	    circle(cx, prediction.x, prediction.y, 40, false, true);
+	}
+	//*/
+	
+	
+	if(button(cx, e1, 0.5*w - 150, 0.5*h+60, 100, 40, "start experiment"))
+	{
+		state = 3;
+	}
+	
+	if(button(cx, e1, 0.5*w - 25, 0.5*h+60, 100, 40, "calibrate again"))
+	{
+		// Restart the calibration process by clearing the local storage and reseting the calibration point
+		webgazer.clearData();
+		calibration_step = 0;
+		calibration_substep = 0;			
+		state = 1;		
+	}
+	
+}
+
+var run_experiment = function()
+{
+	var w = canvas.width;
+	var h = canvas.height;
+	
+	// display the image for the experiment
+	var img = experiment_images[experiment_current_image];
+	var img_w = img.width;
+	var img_h = img.height;
+	cx.drawImage(img, 0, 0);		
+	
+	cx.fillStyle = "gray";
+	cx.textAlign = "left";
+	cx.fillText("recording:"+Math.floor(experiment_time/1000).toString(), 15, 15);
+	
+	if(experiment_time >= 1000 * experiment_image_switch_time)
+	{
+		experiment_current_image++;
+
+		if(experiment_current_image >= experiment.length)
+		{
+			// canvas screenshot doesnt work for security  reasons - how to fix ? 
+			// canvas.toBlob(function(blob){ canvas_snapshot = blob;});
+			state = 4;		
+			return;
+		}		
+
+		experiment_image_switch_time += experiment[experiment_current_image][1];
+	}
+	
+	// draw gazecursor	
+	draw_gaze_cursor();
+}
+
+var show_results = function()
+{
+	var w = canvas.width;
+	var h = canvas.height;
+	
+	cx.fillStyle = "black";
+	cx.textAlign = "center";
+	cx.fillText("Experiment finished. Save results by klicking on the button.", 0.5 * w, 0.5 * h - 10);
+
+	if(button(cx, e1, 0.5*w - 50, 0.5*h+40, 100, 40, "save gaze data"))
+	{
+		var blob = new Blob(gaze_data, { type: "text/plain;charset=utf-8" });
+		saveAs(blob, "gaze_data.txt");
+	}
+
+	/*
+	if(button(cx, e1, 0.5*w + 10, 0.5*h+40, 100, 40, "save canvas screenshot"))
+	{
+		saveAs(canvas_snapshot,"canvas.png"); 
+	}
+	*/
+}
+
+var draw_settings = function()
+{
+	var w = settings_canvas.width;
+	var h = settings_canvas.height;
+
+	// clear the background
+	s_cx.fillStyle = "rgb(240, 240, 255)";
+	s_cx.fillRect(0,0,w,h);
+	s_cx.strokeRect(0,0,w,h);
+	
+	var x = 15;
+	var y = 15;
+	show_gaze_cursor = toggle_button(s_cx, e2, show_gaze_cursor, x, y, 200, 40, "toggle gaze cursor"); 
+	y+=40+15;
+	
+	window.applyKalmanFilter = toggle_button(s_cx, e2, window.applyKalmanFilter, x, y, 200, 40, "toggle kalman filter");
+	y+=40+15;
+
+	gaze_cursor_radius = slider(s_cx, e2, x, y, 200, 40, gaze_cursor_radius, 10, 150, "gaze cursor radius = " + Math.round(gaze_cursor_radius).toString());
+	y+=40+15;
+
+	// if the event was not used to this point, drop it. 
+	e2.mouse_klicked = false;
+
+}
+
+var setup_step2_called = false;
+var update = function()
+{
+
+	// wait until all images are loaded
+	if(experiment_images_loaded < experiment.length)
+	{
+		console.log("images loaded: " +  experiment_images_loaded.toString());
+	}
+	else
+	{
+		// continue with  setup - call setup_step2 *once*
+		if(!setup_step2_called)
+		{
+			setup_step2();
+			setup_step2_called = true;
+		}
+	}
+
+
+	var w = canvas.width;
+	var h = canvas.height;
+
+	// reset stroke color.
+	cx.strokeStyle = "rgb(0,0,0)";
+	// clear the background
+	cx.fillStyle = "rgb(240, 240, 255)";
+	cx.fillRect(0,0,w,h);
+	cx.strokeRect(0,0,w,h);
+
+
+
+	// now display button
+	if(state==0)
+	{
+		if(webgazer.eyes_found())
+		{
+			if(button(cx, e1, 0.5*w - 50, 0.5*h-20, 100, 40, "start calibration"))
+			{
+				state = 1;
+			}	
+		}
+		else
+		{
+			cx.fillStyle = "black";
+			cx.textAlign = "center";
+			cx.fillText("Setup: please wait until the video-preview is ready. Then place your face inside the box.", 0.5*w, 0.5*h-50);			
+		}
+	}
+
+	if(state==1){ calibration(); }
+	if(state==2){ validation(); }	
+	if(state==3){ run_experiment(); }
+	if(state==4){ show_results(); }
+	
+	draw_settings();
+
+}
+
+// first load images
+var setup_step1 = function()
+{
+	for(var i = 0; i < experiment.length; i++)
+	{
+		experiment_images.push(new Image());
+		
+		// https://stackoverflow.com/questions/2342132/waiting-for-image-to-load-in-javascript
+		// Note that it's important to do it in the order above: First attach the handler, then set the src. If you do it the other way around, and the image is in cache, you may miss the event. 
+		experiment_images[i].onload = function () { experiment_images_loaded += 1; };
+		experiment_images[i].src = experiment[i][0];
+	}	
+
+	// setup canvas update
+	setInterval(update, 25);
+}
+
+// then init webgazer and the canvas
+var setup_step2 = function()
+{
+	// set the time when to switch to the new image
+	experiment_image_switch_time = experiment[0][1];
+
+	//Set up the main canvas. The main canvas is used to calibrate the webgazer.
+	canvas = document.getElementById("plotting_canvas");
+
+	// adjust the canvas size and position
+	var left_border = 322; // make some space for the webgazer preview window
+	
+	// set the canvas size based on the browser window size:
+	//canvas.width = window.innerWidth-left_border;
+	//canvas.height = window.innerHeight;
+	
+	// or set the canvas size based on the experiment image size:
+	canvas.width = experiment_images[0].width;
+	canvas.height = experiment_images[0].height;
+	canvas.style.top = "0px";
+	canvas.style.left = left_border.toString()+"px";
+	canvas.style.position = 'fixed';
+	if (!canvas.getContext) { return; }
+	cx = canvas.getContext("2d");
+	
+	settings_canvas = document.getElementById("settings_canvas");
+	settings_canvas.width = 320;
+	settings_canvas.height = 400;
+	settings_canvas.style.top = "242px";
+	settings_canvas.style.left = "0px";
+	settings_canvas.style.position = 'fixed';	
+	if (!settings_canvas.getContext) { return; }
+	s_cx = settings_canvas.getContext("2d");
+         
+	
+	// setup webgazer
+
+	//webgazer.setRegression('weightedRidge');	
+    webgazer.setRegression('ridge'). // currently must set regression and tracker
+	setTracker('TFFacemesh').
+	showPredictionPoints(false). // shows a square every 100 milliseconds where current prediction is 
+	begin();
+	
+	window.applyKalmanFilter = true;
+
+
+
+	webgazer.setGazeListener(function(data, clock)
+	{
+		if (data == null) { return; }
+		
+		//console.log(data);
+		//console.log(clock);
+		gaze_x = data.x; //these x coordinates are relative to the viewport
+		gaze_y = data.y; //these y coordinates are relative to the viewport
+		//console.log(elapsedTime); //elapsed time is based on time since begin was called
+		//gaze_data.push([clock, gaze_x, gaze_y]);
+		if(state == 3)
+		{
+			if(experiment_start_time == -1) { experiment_start_time = clock; }
+			experiment_time = clock - experiment_start_time;
+			gaze_data.push([Math.floor(experiment_time).toString() + '\t' + Math.floor(gaze_x).toString() + '\t' + Math.floor(gaze_y).toString()+ '\t' + experiment_current_image.toString() + '\n']);
+		}
+	});
+
+	// setup mouse callbacks
+	canvas.onmousedown = () =>
+	{
+		e1.mouse_down = true;
+		e1.mouse_klicked = false;
+		// for calculating dragging
+		e1.mx_old = e1.mx;
+		e1.my_old = e1.my;
+	}
+	
+	canvas.onmouseup = () =>
+	{
+		e1.mouse_down = false;
+		e1.mouse_klicked = true;
+	}
+	canvas.onmousemove = (e) =>
+	{
+		//Differenz zwischen Mausposition und Position der Canvas-Fläche ermitteln
+		//damit an der richten Stelle gezeichnet wird
+		e1.mx = e.clientX - canvas.offsetLeft;
+		e1.my = e.clientY - canvas.offsetTop;
+	}
+
+	// setup mouse callbacks
+	settings_canvas.onmousedown = () =>
+	{
+		e2.mouse_down = true;
+		e2.mouse_klicked = false;
+	}
+	
+	settings_canvas.onmouseup = () =>
+	{
+		e2.mouse_down = false;
+		e2.mouse_klicked = true;
+	}
+	settings_canvas.onmousemove = (e) =>
+	{
+		//Differenz zwischen Mausposition und Position der Canvas-Fläche ermitteln
+		//damit an der richten Stelle gezeichnet wird
+		e2.mx = e.clientX - settings_canvas.offsetLeft;
+		e2.my = e.clientY - settings_canvas.offsetTop;
+	}
+
+
+}
+
+
+// main entry point - on page load the init function is executed
+window.onload = () =>
+{
+	setup_step1();
+};
+
+// exit point
+window.onbeforeunload = function()
+{
+	webgazer.end();
+}
+
+
+</script>
+
+</head>
+	
+<body>
+
+<canvas id="plotting_canvas" width="1024" height="768" style="cursor:crosshair;"></canvas>
+<br>
+<canvas id="settings_canvas" width="320" height="566"></canvas>
+
+
+</body>
+</html>
