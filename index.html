@@ -314,8 +314,8 @@ var Home_appliance_control = function()
 
 	cx.drawImage(experiment_images[2], 0, 0, w, h);		// draw the room background
 
-    // Define the state as well as the corresponding image index for it (which is in config.js)
-	var bulb = {"Off":3, "On":4}; // Bulb of Monish
+    // Device State Indices: Define the state as well as the corresponding image index for it (which is in config.js)
+	var bulb = {"Off":3, "Yellow light":4, "White light":13, "Blue light":14}; // Bulb of Monish
 	var fan = {"Fan_Off":5, "Fan_Weak":6, "Fan_Medium":7, "Fan_Strong":8}; // Fan of Quang
 
 	// Define your device here: [ index of device image in config.js, x, y, image size ]
@@ -360,8 +360,8 @@ var Home_appliance_control = function()
 		break;
 
 	    // MONISH PART:
-	    case 1:	// menu for bulb control (from Monish)
-	        let on_off_buttons = [ [w/2, h/8, 100, "On"], [w/2, h/8 +125, 100, "Off"] ];	// format: [x,y,size,text]
+	    case 1:	// menu for bulb control 
+	        let on_off_buttons = [ [w/2, h/8, 100, "Yellow light"], [w/2, h/8 +125, 100, "White light"] ,[w/2, h/8 +250, 100, "Blue light"], [w/2, h/8 +375, 100, "Off"] ];	// format: [x,y,size,text]
 		    for (var i = 0; i < on_off_buttons.length; i++)
 		    {
 		    	button(cx, e1, on_off_buttons[i][0], on_off_buttons[i][1], on_off_buttons[i][2], on_off_buttons[i][2], on_off_buttons[i][3]);
