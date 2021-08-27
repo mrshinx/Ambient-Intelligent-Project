@@ -303,7 +303,8 @@ var time = 0;
 // Define the state variable of your device as well as its first state:
 var device_state = {
     "Bulb":"Off",
-    "Fan":"Fan_Off"
+    "Fan":"Fan_Off",
+	"TV":"TV_Off"
     };
 
 var Home_appliance_control = function()
@@ -317,17 +318,20 @@ var Home_appliance_control = function()
     // Device State Indices: Define the state as well as the corresponding image index for it (which is in config.js)
 	var bulb = {"Off":3, "Yellow light":4, "White light":13, "Blue light":14}; // Bulb of Monish
 	var fan = {"Fan_Off":5, "Fan_Weak":6, "Fan_Medium":7, "Fan_Strong":8}; // Fan of Quang
+	var tv = {"TV_Off":9, "Movies":10, "News":11, "Sport":12}; //TV of Shashank
 
 	// Define your device here: [ index of device image in config.js, x, y, image size ]
 	let devices = [
 	[bulb[device_state["Bulb"]], w/10, 0, w/5],
-	[fan[device_state["Fan"]], w/10, w/5, w/5]
+	[fan[device_state["Fan"]], w/10, w/5, w/5],
+	[tv[device_state["TV"]], w/2, h/8 , w/4]
 	];
 
     // Define the button to start controlling your device: [[x, y, button size, button text]]
     let device_buttons = [
     [w-button_size-10, h/12, 100, "Bulb"],
-    [w-button_size-10, h/10+150, 100, "Fan"]
+    [w-button_size-10, h/10+150, 100, "Fan"],
+	[w-button_size-10, h/10+350, 100, "TV"]
     ];
 
     // Draw all available appliances
@@ -355,7 +359,10 @@ var Home_appliance_control = function()
 		    	    break;
 		    	case "Fan":
 		    	    menu = 2;
-		    	    break;
+			    break;
+		    	case "TV":
+		    	    menu = 3;
+			    break;
 		    }
 		break;
 
@@ -385,6 +392,20 @@ var Home_appliance_control = function()
 		    if(gaze_location != null)
 		    {
 		        device_state["Fan"] = gaze_location;	// changes device state based on button user looks at
+		    	menu = 0;
+		    }
+            break;
+		// SHASHANK PART:
+		case 3: //menu for tv control
+		    let remote_button = [[w/2,h/8,100,"TV_Off"], [w/2,h/8+125,100,"Movies"], [w/2,h/8+250,100,"News"], [w/2,h/8+375,100,"Sport"]];
+		    for (var i = 0; i < remote_button.length; i++)
+		    {
+		    	button(cx, e1, remote_button[i][0], remote_button[i][1], remote_button[i][2], remote_button[i][2], remote_button[i][3]);
+		    }
+		    var gaze_location = get_gaze(remote_button);	// returns what user is looking at, returns null if user doesnt look at any button for more than 0.25s
+		    if(gaze_location != null)
+		    {
+		        device_state["TV"] = gaze_location;	// changes device state based on button user looks at
 		    	menu = 0;
 		    }
             break;
