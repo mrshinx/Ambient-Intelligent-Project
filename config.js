@@ -21,8 +21,9 @@ var experiment =
 ['tv_movies.jpg', 5], //10
 ['tv_news.png', 5], //11
 ['tv_sport.png', 5] //12
+['white_light.jpg', 5], //13
+['blue_light.jpg', 5] //14
 ];
-
 
 
 
